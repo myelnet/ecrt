@@ -125,7 +125,7 @@ fn bench_decoding(c: &mut Criterion) {
 
     for num_data in [10, 100, 250].iter() {
         // 2*num_data - 5 lost chunks is the amount of data we're decoding
-        group.throughput(Throughput::Bytes((64 * MB * (*num_data * 2 - 5)) as u64));
+        group.throughput(Throughput::Bytes((MB * (*num_data * 2 - 5)) as u64));
         group.bench_with_input(
             BenchmarkId::new("varying number of data shards", num_data),
             num_data,
@@ -143,7 +143,7 @@ fn bench_decoding(c: &mut Criterion) {
 
     for num_lost in [10, 100, 250].iter() {
         // 500 - num_lost chunks is the amount of data we're decoding
-        group.throughput(Throughput::Bytes((64 * MB * (500 - num_lost)) as u64));
+        group.throughput(Throughput::Bytes((MB * (500 - num_lost)) as u64));
         group.bench_with_input(
             BenchmarkId::new("varying error rate", num_lost),
             num_lost,
