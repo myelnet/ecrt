@@ -16,10 +16,14 @@ libp2p = { version = "0.46.1", features = ["wasm-ext"] }
 hex = "0.4.3"
 rand = "0.8.5"
 clap = { version = "3.2.18", features = ["derive"] }
-criterion = { version = "0.3", features = ["async_futures", "async_std"] }
+criterion = { version = "0.3", features = ["async_futures", "async_std", "html_reports"] }
 futures = "0.3.21"
 
 
 [[bench]]
 name = "single_peer_e2e"
+harness = false
+
+[[bench]]
+name = "ec"
 harness = false

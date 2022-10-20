@@ -1,10 +1,10 @@
 extern crate reed_solomon_erasure;
 
-use criterion::{criterion_group, criterion_main, BatchSize, Throughput};
-
 use reed_solomon_erasure::galois_8::ReedSolomon;
 // or use the following for Galois 2^16 backend
 // use reed_solomon_erasure::galois_16::ReedSolomon;
+use criterion::{criterion_group, criterion_main, BatchSize, Throughput};
+
 use criterion::async_executor::AsyncStdExecutor;
 use criterion::BenchmarkId;
 use criterion::Criterion;
@@ -48,12 +48,12 @@ fn create_shards(
     num_data: usize,
     num_parity: usize,
 ) -> (MemoryBlockstore, Cid, ReedSolomon) {
-    assert!(shard_size > 0);
+    assert!(shard_size > 0 && num_data > 0);
     let store = MemoryBlockstore::new();
     let lsys = LinkSystem::new(store.clone());
     let mut links = Vec::new();
 
-    let r = ReedSolomon::new(num_data, num_parity).unwrap(); // 3 data shards, 2 parity shards
+    let r = ReedSolomon::new(num_data, num_parity).unwrap();
 
     let mut shards = vec![vec![0u8; shard_size]; num_data + num_parity];
     // leave parity shards as 0 data
@@ -152,25 +152,25 @@ fn bench_ec_graphsync(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("ec-graphsync");
 
-    // for shard_size in [KB, 4 * KB, 15 * KB, 60 * KB].iter() {
-    //     group.throughput(Throughput::Bytes(*shard_size as u64));
-    //     group.bench_with_input(
-    //         BenchmarkId::new("varying shard size", shard_size),
-    //         shard_size,
-    //         move |b, &shard_size| {
-    //             b.to_async(AsyncStdExecutor).iter_batched(
-    //                 || create_shards(shard_size, 10, 2),
-    //                 |(store, root, _)| async move { run_local_transfer(store, root).await },
-    //                 BatchSize::SmallInput,
-    //             );
-    //         },
-    //     );
-    // }
+    for shard_size in [KB, 4 * KB, 15 * KB, 60 * KB].iter() {
+        group.throughput(Throughput::Bytes(*shard_size as u64));
+        group.bench_with_input(
+            BenchmarkId::new("varying shard size", shard_size),
+            shard_size,
+            move |b, &shard_size| {
+                b.to_async(AsyncStdExecutor).iter_batched(
+                    || create_shards(shard_size, 10, 2),
+                    |(store, root, _)| async move { run_local_transfer(store, root).await },
+                    BatchSize::SmallInput,
+                );
+            },
+        );
+    }
 
     for num_data in [10, 100, 250].iter() {
         group.throughput(Throughput::Bytes(*num_data as u64));
         group.bench_with_input(
-            BenchmarkId::new("varying number of data size", num_data),
+            BenchmarkId::new("varying number of data shards", num_data),
             num_data,
             move |b, &num_data| {
                 b.to_async(AsyncStdExecutor).iter_batched(
