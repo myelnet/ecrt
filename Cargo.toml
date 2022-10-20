@@ -1,0 +1,25 @@
+[package]
+name = "ecrt"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+reed-solomon-erasure = "4.0"
+graphsync = { git= "https://github.com/myelnet/rs-graphsync"}
+ipld_traversal = { git= "https://github.com/myelnet/rs-graphsync"}
+libipld = { version = "0.13.1", features = ["serde-codec"] }
+libp2p = { version = "0.46.1", features = ["wasm-ext"] }
+
+
+[dev-dependencies]
+hex = "0.4.3"
+rand = "0.8.5"
+clap = { version = "3.2.18", features = ["derive"] }
+criterion = { version = "0.3", features = ["async_futures", "async_std"] }
+futures = "0.3.21"
+
+
+[[bench]]
+name = "single_peer_e2e"
+harness = false
