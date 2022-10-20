@@ -25,9 +25,17 @@ fn create_shards(
         .map(|s| rand::thread_rng().fill_bytes(s))
         .collect::<Vec<_>>();
 
-    // Construct the parity shards
-    r.encode(&mut shards).unwrap();
+    (r, shards)
+}
 
+fn create_and_encode_shards(
+    shard_size: usize,
+    num_data: usize,
+    num_parity: usize,
+) -> (ReedSolomon, Vec<Vec<u8>>) {
+    let (r, mut shards) = create_shards(shard_size, num_data, num_parity);
+    r.encode(&mut shards).unwrap();
+    // Construct the parity shards
     (r, shards)
 }
 
@@ -57,28 +65,36 @@ fn bench_encoding(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("encoding");
 
-    for shard_size in [MB, 4 * MB, 15 * MB, 60 * MB].iter() {
-        group.throughput(Throughput::Bytes(*shard_size as u64));
+    for shard_size in [MB, 16 * MB, 64 * MB, 128 * MB].iter() {
+        group.throughput(Throughput::Bytes((*shard_size * 12) as u64));
         group.bench_with_input(
             BenchmarkId::new("varying shard size", shard_size),
             shard_size,
             |b, &_| {
-                b.iter(|| {
-                    create_shards(*shard_size, 10, 2);
-                });
+                b.iter_batched(
+                    || create_shards(*shard_size, 10, 2),
+                    |(r, mut shards)| {
+                        r.encode(&mut shards).unwrap();
+                    },
+                    BatchSize::SmallInput,
+                );
             },
         );
     }
 
     for num_data in [10, 100, 250].iter() {
-        group.throughput(Throughput::Bytes(*num_data as u64));
+        group.throughput(Throughput::Bytes((MB * (*num_data + 2)) as u64));
         group.bench_with_input(
             BenchmarkId::new("varying number of data shards", num_data),
             num_data,
             |b, &_| {
-                b.iter(|| {
-                    create_shards(MB, *num_data, 2);
-                });
+                b.iter_batched(
+                    || create_shards(MB, *num_data, 2),
+                    |(r, mut shards)| {
+                        r.encode(&mut shards).unwrap();
+                    },
+                    BatchSize::SmallInput,
+                );
             },
         );
     }
@@ -89,14 +105,15 @@ fn bench_decoding(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("decoding");
 
-    for shard_size in [MB, 4 * MB, 15 * MB, 60 * MB].iter() {
-        group.throughput(Throughput::Bytes(*shard_size as u64));
+    for shard_size in [MB, 16 * MB, 64 * MB, 128 * MB].iter() {
+        // 12 data + parity chunks - 5 lost chunks is the amount of data we're decoding
+        group.throughput(Throughput::Bytes((*shard_size * 7) as u64));
         group.bench_with_input(
             BenchmarkId::new("varying shard size", shard_size),
             shard_size,
             |b, &_| {
                 b.iter_batched(
-                    || create_shards(*shard_size, 10, 10),
+                    || create_and_encode_shards(*shard_size, 10, 10),
                     |(r, shards)| {
                         decode_shards(r, shards, 5);
                     },
@@ -107,13 +124,14 @@ fn bench_decoding(c: &mut Criterion) {
     }
 
     for num_data in [10, 100, 250].iter() {
-        group.throughput(Throughput::Bytes(*num_data as u64));
+        // 2*num_data - 5 lost chunks is the amount of data we're decoding
+        group.throughput(Throughput::Bytes((64 * MB * (*num_data * 2 - 5)) as u64));
         group.bench_with_input(
             BenchmarkId::new("varying number of data shards", num_data),
             num_data,
             |b, &_| {
                 b.iter_batched(
-                    || create_shards(MB, *num_data, *num_data),
+                    || create_and_encode_shards(64 * MB, *num_data, *num_data),
                     |(r, shards)| {
                         decode_shards(r, shards, 5);
                     },
@@ -124,13 +142,14 @@ fn bench_decoding(c: &mut Criterion) {
     }
 
     for num_lost in [10, 100, 250].iter() {
-        group.throughput(Throughput::Bytes(*num_lost as u64));
+        // 500 - num_lost chunks is the amount of data we're decoding
+        group.throughput(Throughput::Bytes((64 * MB * (500 - num_lost)) as u64));
         group.bench_with_input(
             BenchmarkId::new("varying error rate", num_lost),
             num_lost,
             |b, &_| {
                 b.iter_batched(
-                    || create_shards(MB, 250, 250),
+                    || create_and_encode_shards(64 * MB, 250, 250),
                     |(r, shards)| {
                         decode_shards(r, shards, *num_lost);
                     },

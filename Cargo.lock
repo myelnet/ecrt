@@ -1633,6 +1633,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "libm"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "292a948cd991e376cf75541fe5b97a1081d713c618b4f1b9500f8844e49eb565"
+
+[[package]]
 name = "libp2p"
 version = "0.46.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3056,11 +3062,16 @@ dependencies = [
 
 [[package]]
 name = "reed-solomon-erasure"
-version = "4.0.2"
+version = "5.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a415a013dd7c5d4221382329a5a3482566da675737494935cbbbcdec04662f9d"
+checksum = "c2fe31452b684b8b33f65f8730c8b8812c3f5a0bb8a096934717edb1ac488641"
 dependencies = [
+ "cc",
+ "libc",
+ "libm",
+ "parking_lot 0.11.2",
  "smallvec",
+ "spin 0.9.4",
 ]
 
 [[package]]
@@ -3114,7 +3125,7 @@ dependencies = [
  "cc",
  "libc",
  "once_cell",
- "spin",
+ "spin 0.5.2",
  "untrusted",
  "web-sys",
  "winapi",
@@ -3462,6 +3473,12 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "spin"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f6002a767bff9e83f8eeecf883ecb8011875a21ae8da43bffb817a57e78cc09"
 
 [[package]]
 name = "stable_deref_trait"
